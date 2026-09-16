@@ -21,5 +21,6 @@ export function captureGeolocation() {
 
 export function mapsLink(geo) {
   if (!geo) return '';
-  return `https://www.google.com/maps?q=${geo.lat},${geo.lng}`;
+  // Formato oficial da Maps URLs API: garante um marcador/pino na coordenada.
+  return `https://www.google.com/maps/search/?api=1&query=${geo.lat},${geo.lng}`;
 }

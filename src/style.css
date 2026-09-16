@@ -255,6 +255,44 @@ input, textarea, select {
   background: #fff;
 }
 
+.repeat-block {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-bottom: 6px;
+  margin-bottom: 4px;
+  border-bottom: 1.5px dashed var(--border);
+}
+
+.repeat-item {
+  background: #f6f8fb;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.repeat-item + .repeat-item { margin-top: 2px; }
+
+.repeat-item-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--navy-900);
+}
+
+.repeat-remove {
+  background: none;
+  border: none;
+  color: var(--danger);
+  font-size: 16px;
+  padding: 2px 6px;
+}
+
 .field-group-title {
   font-size: 12.5px;
   font-weight: 700;
@@ -348,15 +386,17 @@ input, textarea, select {
 }
 
 .photo-label { flex: 1; font-size: 13.5px; font-weight: 600; }
+.photo-add-group { display: flex; gap: 6px; flex-shrink: 0; }
 .photo-add-btn {
   background: var(--navy-900);
   color: #fff;
   border: none;
   border-radius: 8px;
-  padding: 8px 10px;
-  font-size: 12px;
+  padding: 8px 11px;
+  font-size: 15px;
   font-weight: 700;
   flex-shrink: 0;
+  line-height: 1;
 }
 .photo-remove-btn {
   background: none;
@@ -364,6 +404,12 @@ input, textarea, select {
   color: var(--danger);
   font-size: 18px;
   padding: 4px 8px;
+}
+
+.gallery-add-btn {
+  flex: 1;
+  text-align: center;
+  cursor: pointer;
 }
 
 .gallery-grid {

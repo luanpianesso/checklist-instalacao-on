@@ -3,7 +3,7 @@ import {
   listInstallations, getInstallation, saveInstallation, deleteInstallation,
   addMedia, deleteMedia, getMediaForInstallation, uid
 } from './db.js';
-import { SECTIONS, PHOTO_CATEGORIES, createEmptyData } from './schema.js';
+import { SECTIONS, PHOTO_CATEGORIES, createEmptyData, emptyInversor, emptyString } from './schema.js';
 import { debounce, toast, formatDateTime, formatDate, fileToJpegBlob, escapeHtml } from './utils.js';
 import { captureGeolocation, mapsLink } from './geo.js';
 import { SignaturePad } from './signature.js';
@@ -100,6 +100,9 @@ async function renderForm(id) {
   }
   let mediaList = await getMediaForInstallation(id);
   const data = installation.data;
+  // Compatibilidade com instalações salvas antes destes campos existirem.
+  if (!Array.isArray(data.inversores) || !data.inversores.length) data.inversores = [emptyInversor()];
+  if (!Array.isArray(data.strings) || !data.strings.length) data.strings = [emptyString(), emptyString()];
 
   const saveNow = async () => {
     await saveInstallation(installation);
@@ -163,6 +166,26 @@ async function renderForm(id) {
     });
   });
   applyConditionalVisibility(root, data);
+
+  // ----- Inversores / strings (listas repetíveis) -----
+  wireRepeatableList(root, {
+    containerSelector: '#inversorList',
+    data,
+    arrayKey: 'inversores',
+    makeEmpty: emptyInversor,
+    itemHtml: inversorItemHtml,
+    minItems: 1,
+    saveDebounced
+  });
+  wireRepeatableList(root, {
+    containerSelector: '#stringList',
+    data,
+    arrayKey: 'strings',
+    makeEmpty: emptyString,
+    itemHtml: stringItemHtml,
+    minItems: 1,
+    saveDebounced
+  });
 
   // ----- Geolocation -----
   root.querySelector('#btnCaptureGeo').addEventListener('click', async () => {
@@ -302,12 +325,135 @@ function sectionCardHtml(section, data, idx) {
     lastGroup = field.group || null;
     return fieldHtml(field, data, showGroup);
   }).join('');
+
+  let extraHtml = '';
+  if (section.id === 'sistema') {
+    extraHtml = repeatableListHtml({
+      title: 'Inversores',
+      hint: 'Adicione um item para cada inversor instalado.',
+      containerId: 'inversorList',
+      items: data.inversores,
+      itemHtml: inversorItemHtml,
+      addLabel: '+ Adicionar inversor'
+    });
+  } else if (section.id === 'testes') {
+    extraHtml = repeatableListHtml({
+      title: 'Tensão CC das strings',
+      hint: 'Adicione um item para cada string do sistema.',
+      containerId: 'stringList',
+      items: data.strings,
+      itemHtml: stringItemHtml,
+      addLabel: '+ Adicionar string'
+    });
+  }
+
+  const body = section.id === 'sistema' ? extraHtml + fieldsHtml : (section.id === 'testes' ? insertAfterFirstGroup(fieldsHtml, extraHtml) : fieldsHtml);
+
   return `
     <div class="card">
       <div class="card-header" data-toggle><h3>${escapeHtml(section.title)}</h3><span class="chevron">▾</span></div>
-      <div class="card-body">${fieldsHtml}</div>
+      <div class="card-body">${body}</div>
     </div>
   `;
+}
+
+// Insere o HTML das strings logo após o primeiro grupo de campos (Tensão CA), antes de Conectividade.
+function insertAfterFirstGroup(fieldsHtml, extraHtml) {
+  const marker = '<div class="field-group-title" data-group-marker>Conectividade</div>';
+  const idx = fieldsHtml.indexOf(marker);
+  if (idx === -1) return fieldsHtml + extraHtml;
+  return fieldsHtml.slice(0, idx) + extraHtml + fieldsHtml.slice(idx);
+}
+
+function repeatableListHtml({ title, hint, containerId, items, itemHtml, addLabel }) {
+  return `
+    <div class="repeat-block">
+      <div class="field-group-title" data-group-marker>${escapeHtml(title)}</div>
+      <div class="hint">${escapeHtml(hint)}</div>
+      <div id="${containerId}">${repeatableItemsHtml(items, itemHtml)}</div>
+      <button type="button" class="btn-outline-cyan" data-add-item>${escapeHtml(addLabel)}</button>
+    </div>
+  `;
+}
+
+function repeatableItemsHtml(items, itemHtml) {
+  return items.map((item, i) => itemHtml(item, i, items.length)).join('');
+}
+
+function inversorItemHtml(item, index, total) {
+  return `
+    <div class="repeat-item">
+      <div class="repeat-item-header">
+        <span>Inversor ${index + 1}</span>
+        ${total > 1 ? `<button type="button" class="repeat-remove" data-remove-item="${index}">✕</button>` : ''}
+      </div>
+      <div class="field">
+        <label>Potência do inversor</label>
+        <input type="text" placeholder="Ex: 5kW" data-array-field="potencia" data-index="${index}" value="${escapeHtml(item.potencia)}" />
+      </div>
+      <div class="field">
+        <label>SN do inversor</label>
+        <input type="text" data-array-field="snInversor" data-index="${index}" value="${escapeHtml(item.snInversor)}" />
+      </div>
+      <div class="field">
+        <label>SN do datalogger</label>
+        <input type="text" data-array-field="snDatalogger" data-index="${index}" value="${escapeHtml(item.snDatalogger)}" />
+      </div>
+    </div>
+  `;
+}
+
+function stringItemHtml(item, index, total) {
+  return `
+    <div class="repeat-item">
+      <div class="repeat-item-header">
+        <span>String ${index + 1}</span>
+        ${total > 1 ? `<button type="button" class="repeat-remove" data-remove-item="${index}">✕</button>` : ''}
+      </div>
+      <div class="field">
+        <label>Tensão (V)</label>
+        <input type="text" inputmode="decimal" data-array-field="tensao" data-index="${index}" value="${escapeHtml(item.tensao)}" />
+      </div>
+      <div class="field">
+        <label>Amperagem (A)</label>
+        <input type="text" inputmode="decimal" data-array-field="amperagem" data-index="${index}" value="${escapeHtml(item.amperagem)}" />
+      </div>
+    </div>
+  `;
+}
+
+function wireRepeatableList(root, { containerSelector, data, arrayKey, makeEmpty, itemHtml, minItems, saveDebounced }) {
+  const container = root.querySelector(containerSelector);
+  if (!container) return;
+  const block = container.closest('.repeat-block');
+  const addBtn = block.querySelector('[data-add-item]');
+
+  const rerender = () => {
+    container.innerHTML = repeatableItemsHtml(data[arrayKey], itemHtml);
+  };
+
+  addBtn.addEventListener('click', () => {
+    data[arrayKey].push(makeEmpty());
+    rerender();
+    saveDebounced();
+  });
+
+  container.addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-remove-item]');
+    if (!btn) return;
+    if (data[arrayKey].length <= minItems) return;
+    data[arrayKey].splice(Number(btn.dataset.removeItem), 1);
+    rerender();
+    saveDebounced();
+  });
+
+  container.addEventListener('input', (e) => {
+    const input = e.target.closest('[data-array-field]');
+    if (!input) return;
+    const idx = Number(input.dataset.index);
+    data[arrayKey][idx][input.dataset.arrayField] = input.value;
+    saveDebounced();
+  });
 }
 
 function fieldHtml(field, data, showGroup) {
@@ -359,8 +505,13 @@ function photosCardHtml(mediaList) {
           <div class="hint">Fotos livres do local, materiais, obra, etc.</div>
           <div class="gallery-grid" id="generalGallery">
             ${generalPhotos.map((m) => galleryItemHtml(m)).join('')}
-            <label class="gallery-add" id="generalAddTile">+
-              <input type="file" accept="image/*" capture="environment" multiple id="generalPhotoInput" style="display:none" />
+          </div>
+          <div class="photo-add-group">
+            <label class="btn-outline-cyan gallery-add-btn">📷 Tirar foto
+              <input type="file" accept="image/*" capture="environment" multiple id="generalPhotoInputCamera" style="display:none" />
+            </label>
+            <label class="btn-outline-cyan gallery-add-btn">🖼️ Da galeria
+              <input type="file" accept="image/*" multiple id="generalPhotoInputLibrary" style="display:none" />
             </label>
           </div>
         </div>
@@ -378,9 +529,14 @@ function photoCategoryRowHtml(cat, media) {
       <div class="photo-label">${escapeHtml(cat.label)}</div>
       ${media
         ? `<button type="button" class="photo-remove-btn" data-remove-cat="${cat.key}">✕</button>`
-        : `<label class="photo-add-btn">Adicionar
-             <input type="file" accept="image/*" capture="environment" data-cat-input="${cat.key}" style="display:none" />
-           </label>`
+        : `<div class="photo-add-group">
+             <label class="photo-add-btn" title="Tirar foto">📷
+               <input type="file" accept="image/*" capture="environment" data-cat-input="${cat.key}" style="display:none" />
+             </label>
+             <label class="photo-add-btn" title="Escolher da galeria">🖼️
+               <input type="file" accept="image/*" data-cat-input="${cat.key}" style="display:none" />
+             </label>
+           </div>`
       }
     </div>
   `;
@@ -432,10 +588,8 @@ function wirePhotoCategories(root, installation, mediaList, saveNow) {
 
 function wireGeneralGallery(root, installation, mediaList) {
   const gallery = root.querySelector('#generalGallery');
-  const addTile = root.querySelector('#generalAddTile');
-  const input = root.querySelector('#generalPhotoInput');
 
-  input.addEventListener('change', async () => {
+  async function handleFiles(input) {
     if (!input.files?.length) return;
     for (const file of Array.from(input.files)) {
       try {
@@ -443,14 +597,17 @@ function wireGeneralGallery(root, installation, mediaList) {
         const item = { id: uid(), installationId: installation.id, kind: 'photo', fieldKey: 'general', blob, mimeType: 'image/jpeg', createdAt: Date.now() };
         await addMedia(item);
         mediaList.push(item);
-        addTile.insertAdjacentHTML('beforebegin', galleryItemHtml(item));
+        gallery.insertAdjacentHTML('beforeend', galleryItemHtml(item));
       } catch (err) {
         toast('Não foi possível processar uma das fotos.', 'error');
       }
     }
     input.value = '';
     showSaved();
-  });
+  }
+
+  root.querySelector('#generalPhotoInputCamera').addEventListener('change', (e) => handleFiles(e.target));
+  root.querySelector('#generalPhotoInputLibrary').addEventListener('change', (e) => handleFiles(e.target));
 
   gallery.addEventListener('click', async (e) => {
     const btn = e.target.closest('[data-remove-general]');

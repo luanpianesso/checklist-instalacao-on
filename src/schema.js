@@ -39,10 +39,6 @@ export const SECTIONS = [
     id: 'sistema',
     title: '2. Dados do sistema instalado',
     fields: [
-      { key: 'potenciaInversor', label: '2.1 Potência do inversor instalado', type: 'text', placeholder: 'Ex: 5kW' },
-      { key: 'qtdInversor', label: 'Quantidade de inversores', type: 'text', inputmode: 'numeric' },
-      { key: 'snInversor', label: '2.2 SN do inversor', type: 'text' },
-      { key: 'snDatalogger', label: '2.3 SN do datalogger', type: 'text' },
       { key: 'potenciaModulos', label: '2.4 Potência dos módulos instalados', type: 'text', placeholder: 'Ex: 550W' },
       { key: 'qtdModulos', label: 'Quantidade de módulos', type: 'text', inputmode: 'numeric' },
       { key: 'snModulo', label: '2.5 SN do módulo', type: 'textarea', placeholder: 'Se houver vários, liste um por linha' },
@@ -87,17 +83,20 @@ export const SECTIONS = [
       { key: 'testeFaseTerra', label: 'Fase-Terra (V)', type: 'text', inputmode: 'decimal', group: 'Tensão no terminal CA de entrada do inversor' },
       { key: 'testeNeutroTerra', label: 'Neutro-Terra (V)', type: 'text', inputmode: 'decimal', group: 'Tensão no terminal CA de entrada do inversor' },
       { key: 'testeFaseFase', label: 'Fase-Fase (V)', type: 'text', inputmode: 'decimal', group: 'Tensão no terminal CA de entrada do inversor' },
-      { key: 'tensaoString1', label: 'Tensão String 1 (V)', type: 'text', inputmode: 'decimal', group: 'Tensão CC das strings' },
-      { key: 'amperagemString1', label: 'Amperagem String 1 (A)', type: 'text', inputmode: 'decimal', group: 'Tensão CC das strings' },
-      { key: 'tensaoString2', label: 'Tensão String 2 (V)', type: 'text', inputmode: 'decimal', group: 'Tensão CC das strings' },
-      { key: 'amperagemString2', label: 'Amperagem String 2 (A)', type: 'text', inputmode: 'decimal', group: 'Tensão CC das strings' },
-      { key: 'tensaoDemaisStrings', label: 'Tensão demais strings, se houver (V)', type: 'text', inputmode: 'decimal', group: 'Tensão CC das strings' },
-      { key: 'amperagemDemaisStrings', label: 'Amperagem demais strings, se houver (A)', type: 'text', inputmode: 'decimal', group: 'Tensão CC das strings' },
       { key: 'possuiSinalInternet', label: '6.3 Possui sinal de internet no local?', type: 'radio', options: RADIO_SIM_NAO, group: 'Conectividade' },
       { key: 'monitoramentoConfigurado', label: 'Configurado o monitoramento?', type: 'radio', options: RADIO_SIM_NAO, group: 'Conectividade' }
     ]
   }
 ];
+
+// Inversores e strings são repetíveis (pode haver mais de um inversor / mais de uma string)
+export function emptyInversor() {
+  return { potencia: '', snInversor: '', snDatalogger: '' };
+}
+
+export function emptyString() {
+  return { tensao: '', amperagem: '' };
+}
 
 // 7 - Registros fotográficos: categorias fixas do documento original
 export const PHOTO_CATEGORIES = [
@@ -124,5 +123,7 @@ export function createEmptyData() {
   data.observacoesTexto = '';
   data.executorNome = '';
   data.geo = null; // { lat, lng, accuracy, timestamp }
+  data.inversores = [emptyInversor()];
+  data.strings = [emptyString(), emptyString()];
   return data;
 }

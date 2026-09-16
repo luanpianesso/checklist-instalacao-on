@@ -187,6 +187,17 @@ export async function generatePdf(installation, mediaList) {
   // Sections 1-6 from schema
   for (const section of SECTIONS) {
     sectionTitle(section.title.toUpperCase());
+
+    if (section.id === 'sistema') {
+      (d.inversores || []).forEach((inv, i) => {
+        if (!inv.potencia && !inv.snInversor && !inv.snDatalogger) return;
+        groupLabel(`Inversor ${i + 1}`);
+        fieldRow('Potência do inversor', inv.potencia);
+        fieldRow('SN do inversor', inv.snInversor);
+        fieldRow('SN do datalogger', inv.snDatalogger);
+      });
+    }
+
     let lastGroup = null;
     for (const field of section.fields) {
       if (field.showIf && !field.showIf(d)) continue;
@@ -197,6 +208,15 @@ export async function generatePdf(installation, mediaList) {
       if (!field.group && lastGroup) lastGroup = null;
       const value = field.type === 'radio' ? radioDisplay(field, d) : d[field.key];
       fieldRow(field.label, value);
+      if (section.id === 'testes' && field.key === 'testeFaseFase') {
+        (d.strings || []).forEach((str, i) => {
+          if (!str.tensao && !str.amperagem) return;
+          groupLabel(`String ${i + 1}`);
+          fieldRow('Tensão (V)', str.tensao);
+          fieldRow('Amperagem (A)', str.amperagem);
+        });
+        lastGroup = null;
+      }
     }
     spacer();
   }
