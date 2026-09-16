@@ -79,10 +79,6 @@ export const SECTIONS = [
     id: 'testes',
     title: '6. Testes após instalação',
     fields: [
-      { key: 'testeFaseNeutro', label: '6.1 Fase-Neutro (V)', type: 'text', inputmode: 'decimal', group: 'Tensão no terminal CA de entrada do inversor' },
-      { key: 'testeFaseTerra', label: 'Fase-Terra (V)', type: 'text', inputmode: 'decimal', group: 'Tensão no terminal CA de entrada do inversor' },
-      { key: 'testeNeutroTerra', label: 'Neutro-Terra (V)', type: 'text', inputmode: 'decimal', group: 'Tensão no terminal CA de entrada do inversor' },
-      { key: 'testeFaseFase', label: 'Fase-Fase (V)', type: 'text', inputmode: 'decimal', group: 'Tensão no terminal CA de entrada do inversor' },
       { key: 'possuiSinalInternet', label: '6.3 Possui sinal de internet no local?', type: 'radio', options: RADIO_SIM_NAO, group: 'Conectividade' },
       { key: 'monitoramentoConfigurado', label: 'Configurado o monitoramento?', type: 'radio', options: RADIO_SIM_NAO, group: 'Conectividade' }
     ]
@@ -91,7 +87,10 @@ export const SECTIONS = [
 
 // Inversores e strings são repetíveis (pode haver mais de um inversor / mais de uma string)
 export function emptyInversor() {
-  return { potencia: '', snInversor: '', snDatalogger: '' };
+  return {
+    potencia: '', snInversor: '', snDatalogger: '',
+    testeFaseNeutro: '', testeFaseTerra: '', testeNeutroTerra: '', testeFaseFase: ''
+  };
 }
 
 export function emptyString() {

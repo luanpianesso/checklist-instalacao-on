@@ -399,6 +399,23 @@ function inversorItemHtml(item, index, total) {
         <label>SN do datalogger</label>
         <input type="text" data-array-field="snDatalogger" data-index="${index}" value="${escapeHtml(item.snDatalogger)}" />
       </div>
+      <div class="field-group-title" style="margin-top:2px">Tensão no terminal CA de entrada</div>
+      <div class="field">
+        <label>Fase-Neutro (V)</label>
+        <input type="text" inputmode="decimal" data-array-field="testeFaseNeutro" data-index="${index}" value="${escapeHtml(item.testeFaseNeutro)}" />
+      </div>
+      <div class="field">
+        <label>Fase-Terra (V)</label>
+        <input type="text" inputmode="decimal" data-array-field="testeFaseTerra" data-index="${index}" value="${escapeHtml(item.testeFaseTerra)}" />
+      </div>
+      <div class="field">
+        <label>Neutro-Terra (V)</label>
+        <input type="text" inputmode="decimal" data-array-field="testeNeutroTerra" data-index="${index}" value="${escapeHtml(item.testeNeutroTerra)}" />
+      </div>
+      <div class="field">
+        <label>Fase-Fase (V)</label>
+        <input type="text" inputmode="decimal" data-array-field="testeFaseFase" data-index="${index}" value="${escapeHtml(item.testeFaseFase)}" />
+      </div>
     </div>
   `;
 }

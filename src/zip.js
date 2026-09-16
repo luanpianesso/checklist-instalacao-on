@@ -1,5 +1,6 @@
 import JSZip from 'jszip';
 import { generatePdf } from './pdf.js';
+import { buildKml } from './geo.js';
 
 function safeName(str) {
   return String(str || 'instalacao')
@@ -42,6 +43,15 @@ export async function buildExportPackage(installation, mediaList) {
   const sig = mediaList.find((x) => x.kind === 'signature');
   if (sig) {
     zip.file('assinatura_executor.png', sig.blob);
+  }
+
+  if (installation.data.geo) {
+    const kml = buildKml(
+      installation.data.geo,
+      installation.data.clienteNome || 'Local da instalação',
+      installation.data.clienteEndereco || ''
+    );
+    zip.file(`localizacao_${baseName}.kml`, kml);
   }
 
   const blob = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE', compressionOptions: { level: 6 } });

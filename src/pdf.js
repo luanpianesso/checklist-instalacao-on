@@ -1,4 +1,4 @@
-import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
+import { PDFDocument, StandardFonts, rgb, PDFName, PDFString } from 'pdf-lib';
 import { SECTIONS, PHOTO_CATEGORIES } from './schema.js';
 import { formatDate, formatDateTime } from './utils.js';
 import { mapsLink } from './geo.js';
@@ -26,6 +26,29 @@ function radioDisplay(field, data) {
   const val = data[field.key];
   if (!val) return '—';
   return optionLabel(field.options, val);
+}
+
+// Cria uma anotação de link real (clicável) sobre uma área retangular da página.
+function addLinkAnnotation(pdfDoc, page, rect, url) {
+  const [x1, y1, x2, y2] = rect;
+  const linkAnnot = pdfDoc.context.obj({
+    Type: 'Annot',
+    Subtype: 'Link',
+    Rect: [x1, y1, x2, y2],
+    Border: [0, 0, 0],
+    A: {
+      Type: 'Action',
+      S: 'URI',
+      URI: PDFString.of(url)
+    }
+  });
+  const linkRef = pdfDoc.context.register(linkAnnot);
+  const existingAnnots = page.node.Annots();
+  if (existingAnnots) {
+    existingAnnots.push(linkRef);
+  } else {
+    page.node.set(PDFName.of('Annots'), pdfDoc.context.obj([linkRef]));
+  }
 }
 
 export async function generatePdf(installation, mediaList) {
@@ -150,7 +173,9 @@ export async function generatePdf(installation, mediaList) {
     valueLines.forEach((l, i) => {
       state.page.drawText(l, { x: MARGIN + labelW + 8, y: state.y - 14 - i * 11, size: 9.2, font: fontRegular, color: TEXT });
     });
+    const rowRect = { page: state.page, rect: [MARGIN + labelW, state.y - rowH, MARGIN + CONTENT_W, state.y] };
     state.y -= rowH;
+    return rowRect;
   }
 
   function groupLabel(text) {
@@ -178,7 +203,9 @@ export async function generatePdf(installation, mediaList) {
   if (d.geo) {
     fieldRow('Coordenadas', `${d.geo.lat.toFixed(6)}, ${d.geo.lng.toFixed(6)} (precisão ~${Math.round(d.geo.accuracy)}m)`);
     fieldRow('Capturado em', formatDateTime(d.geo.timestamp));
-    fieldRow('Link do mapa', mapsLink(d.geo));
+    const mapUrl = mapsLink(d.geo);
+    const linkRow = fieldRow('Link do mapa (toque para abrir com marcador)', mapUrl);
+    addLinkAnnotation(pdfDoc, linkRow.page, linkRow.rect, mapUrl);
   } else {
     fieldRow('Coordenadas', 'Não capturada');
   }
@@ -190,11 +217,25 @@ export async function generatePdf(installation, mediaList) {
 
     if (section.id === 'sistema') {
       (d.inversores || []).forEach((inv, i) => {
-        if (!inv.potencia && !inv.snInversor && !inv.snDatalogger) return;
+        const hasAny = inv.potencia || inv.snInversor || inv.snDatalogger || inv.testeFaseNeutro || inv.testeFaseTerra || inv.testeNeutroTerra || inv.testeFaseFase;
+        if (!hasAny) return;
         groupLabel(`Inversor ${i + 1}`);
         fieldRow('Potência do inversor', inv.potencia);
         fieldRow('SN do inversor', inv.snInversor);
         fieldRow('SN do datalogger', inv.snDatalogger);
+        fieldRow('Fase-Neutro (V)', inv.testeFaseNeutro);
+        fieldRow('Fase-Terra (V)', inv.testeFaseTerra);
+        fieldRow('Neutro-Terra (V)', inv.testeNeutroTerra);
+        fieldRow('Fase-Fase (V)', inv.testeFaseFase);
+      });
+    }
+
+    if (section.id === 'testes') {
+      (d.strings || []).forEach((str, i) => {
+        if (!str.tensao && !str.amperagem) return;
+        groupLabel(`String ${i + 1}`);
+        fieldRow('Tensão (V)', str.tensao);
+        fieldRow('Amperagem (A)', str.amperagem);
       });
     }
 
@@ -208,15 +249,6 @@ export async function generatePdf(installation, mediaList) {
       if (!field.group && lastGroup) lastGroup = null;
       const value = field.type === 'radio' ? radioDisplay(field, d) : d[field.key];
       fieldRow(field.label, value);
-      if (section.id === 'testes' && field.key === 'testeFaseFase') {
-        (d.strings || []).forEach((str, i) => {
-          if (!str.tensao && !str.amperagem) return;
-          groupLabel(`String ${i + 1}`);
-          fieldRow('Tensão (V)', str.tensao);
-          fieldRow('Amperagem (A)', str.amperagem);
-        });
-        lastGroup = null;
-      }
     }
     spacer();
   }
