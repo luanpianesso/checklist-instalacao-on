@@ -36,6 +36,12 @@ export async function generatePdf(installation, mediaList) {
   const fontRegular = await pdfDoc.embedFont(StandardFonts.Helvetica);
   const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
 
+  let logoImage = null;
+  try {
+    const logoBytes = await fetch(`${import.meta.env.BASE_URL}logo-mark.png`).then((r) => r.arrayBuffer());
+    logoImage = await pdfDoc.embedPng(logoBytes);
+  } catch (e) { /* logo optional */ }
+
   const state = { page: null, y: 0, pageNum: 0 };
 
   function newPage() {
@@ -48,23 +54,27 @@ export async function generatePdf(installation, mediaList) {
 
   function drawHeader(page, big) {
     page.drawRectangle({ x: 0, y: PAGE_H - HEADER_H, width: PAGE_W, height: HEADER_H, color: NAVY });
-    page.drawCircle({ x: MARGIN + 16, y: PAGE_H - HEADER_H / 2, size: 15, color: rgb(1, 1, 1) });
-    page.drawText('ON', {
-      x: MARGIN + 16 - fontBold.widthOfTextAtSize('ON', 11) / 2,
-      y: PAGE_H - HEADER_H / 2 - 4,
-      size: 11,
-      font: fontBold,
-      color: NAVY
-    });
+    let textX = MARGIN + 40;
+    if (logoImage) {
+      const logoH = 32;
+      const logoDims = logoImage.scaleToFit(logoH * (logoImage.width / logoImage.height), logoH);
+      page.drawImage(logoImage, {
+        x: MARGIN,
+        y: PAGE_H - HEADER_H / 2 - logoDims.height / 2,
+        width: logoDims.width,
+        height: logoDims.height
+      });
+      textX = MARGIN + logoDims.width + 10;
+    }
     page.drawText('ON ENGENHARIA', {
-      x: MARGIN + 40,
+      x: textX,
       y: PAGE_H - HEADER_H / 2 - 3,
       size: 12,
       font: fontBold,
       color: rgb(1, 1, 1)
     });
     page.drawText('Soluções Elétricas personalizadas', {
-      x: MARGIN + 40,
+      x: textX,
       y: PAGE_H - HEADER_H / 2 - 15,
       size: 8,
       font: fontRegular,

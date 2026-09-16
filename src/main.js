@@ -32,7 +32,7 @@ async function renderHome() {
   app.innerHTML = `
     <header class="app-header">
       <div class="brand">
-        <div class="logo">ON</div>
+        <img src="${import.meta.env.BASE_URL}logo-mark.png" alt="ON Engenharia" class="logo-img" />
         <div class="brand-text">
           <div class="b1">ON ENGENHARIA</div>
           <div class="b2">Soluções Elétricas personalizadas</div>
